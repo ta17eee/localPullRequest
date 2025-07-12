@@ -67,11 +67,68 @@ body {
 /* Diff表示 */
 #diffContainer {
     max-height: 80vh;
+    overflow: hidden;
+}
+
+/* diff2htmlの内部スクロール用 - 後で統合するため削除 */
+
+/* 行番号とコードの同期スクロールを確保 */
+.d2h-file-wrapper {
+    position: relative;
+}
+
+/* Split モード専用：ファイル単位の統一スクロール */
+.d2h-file-side-diff .d2h-code-wrapper,
+.d2h-file-side-diff .d2h-code-line-ctn {
+    overflow: visible; /* 個別行スクロールを無効化 */
+}
+
+/* d2h-wrapperの重複スタイルを統合 */
+.d2h-wrapper {
+    border: none;
+    max-height: 80vh;
     overflow-y: auto;
 }
 
-.d2h-wrapper {
-    border: none;
+/* diff2htmlテーブルの最小限の調整 */
+.d2h-diff-table {
+    border-spacing: 0;
+}
+
+/* 行番号の基本スタイル（!importantを削除） */
+.d2h-code-linenumber {
+    text-align: right;
+    padding-right: 8px;
+    user-select: none;
+    vertical-align: top;
+    min-width: 40px;
+}
+
+/* コード行の基本スタイル */
+.d2h-code-line {
+    white-space: pre;
+    vertical-align: top;
+    word-wrap: break-word;
+}
+
+/* Unifiedモード専用の行間調整（コンパクト表示） */
+.d2h-file-wrapper:not(.d2h-file-side-diff) .d2h-diff-table {
+    line-height: 1.1;
+}
+
+.d2h-file-wrapper:not(.d2h-file-side-diff) .d2h-diff-tbody tr {
+    height: 1.1em;
+    line-height: 1.1;
+}
+
+.d2h-file-wrapper:not(.d2h-file-side-diff) .d2h-code-line,
+.d2h-file-wrapper:not(.d2h-file-side-diff) .d2h-code-linenumber {
+    line-height: 1.1;
+}
+
+/* スクロール同期のための最小限の調整 */
+.d2h-code-wrapper {
+    position: relative;
 }
 
 .d2h-file-header {
@@ -92,6 +149,48 @@ body {
 
 .d2h-code-line:hover .line-comment-btn {
     opacity: 1;
+}
+
+/* 行範囲選択の視覚的インジケーター */
+.line-selected {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+}
+
+.line-range-start {
+    border-top: 2px solid #007bff !important;
+}
+
+.line-range-end {
+    border-bottom: 2px solid #007bff !important;
+}
+
+.line-range-middle {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3 !important;
+}
+
+/* 選択状態の視覚的フィードバック */
+.selection-indicator {
+    position: absolute;
+    right: 10px;
+    background: #007bff;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* 行のクリック可能な領域を拡張 */
+.d2h-code-line {
+    position: relative;
+    cursor: pointer;
+}
+
+.d2h-code-line:hover {
+    background-color: #f8f9fa;
 }
 
 /* コメント表示 */
@@ -143,6 +242,30 @@ body {
 .comment-body {
     white-space: pre-wrap;
     line-height: 1.5;
+}
+
+.comment-delete {
+    color: #dc3545;
+    text-decoration: none;
+}
+
+/* 範囲コメント専用スタイル */
+.range-comment-thread {
+    border-left: 4px solid #2196f3;
+}
+
+.range-comment {
+    background-color: #e3f2fd;
+    border: 1px solid #2196f3;
+}
+
+.comment-range {
+    background-color: #2196f3;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    margin: 0 8px;
 }
 
 /* レビューステータス */
