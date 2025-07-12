@@ -1,0 +1,219 @@
+/* GitHub風カスタムスタイル */
+:root {
+    --github-bg: #f6f8fa;
+    --github-border: #d1d9e0;
+    --github-text: #24292f;
+    --github-blue: #0969da;
+    --github-green: #1a7f37;
+    --github-red: #cf222e;
+    --github-orange: #bf8700;
+}
+
+body {
+    background-color: var(--github-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    color: var(--github-text);
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.card {
+    border: 1px solid var(--github-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #f6f8fa;
+    border-bottom: 1px solid var(--github-border);
+    font-weight: 600;
+}
+
+/* ファイルリスト */
+.file-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--github-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f3f4f6;
+}
+
+.file-item.active {
+    background-color: #dbeafe;
+    border-left: 3px solid var(--github-blue);
+}
+
+.file-stats {
+    font-size: 0.875rem;
+    color: #656d76;
+}
+
+.file-stats .additions {
+    color: var(--github-green);
+    font-weight: 600;
+}
+
+.file-stats .deletions {
+    color: var(--github-red);
+    font-weight: 600;
+}
+
+/* Diff表示 */
+#diffContainer {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.d2h-wrapper {
+    border: none;
+}
+
+.d2h-file-header {
+    background-color: #f6f8fa;
+    border-bottom: 1px solid var(--github-border);
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+/* 行番号とコメントボタン */
+.line-comment-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+    cursor: pointer;
+    color: var(--github-blue);
+    margin-left: 8px;
+}
+
+.d2h-code-line:hover .line-comment-btn {
+    opacity: 1;
+}
+
+/* コメント表示 */
+.comment-thread {
+    background-color: #fff;
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    margin: 8px 16px;
+    padding: 16px;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: #656d76;
+}
+
+.comment-type {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.comment-type.suggestion {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.comment-type.issue {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.comment-type.question {
+    background-color: #ede9fe;
+    color: #6d28d9;
+}
+
+.comment-type.praise {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.comment-body {
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+/* レビューステータス */
+.status-pending {
+    color: var(--github-orange);
+}
+
+.status-approved {
+    color: var(--github-green);
+}
+
+.status-changes_requested {
+    color: var(--github-red);
+}
+
+/* 統計情報 */
+.diff-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+}
+
+.stat-bar {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex: 1;
+    max-width: 200px;
+    background-color: #e5e7eb;
+}
+
+.stat-additions {
+    background-color: var(--github-green);
+    height: 100%;
+    float: left;
+}
+
+.stat-deletions {
+    background-color: var(--github-red);
+    height: 100%;
+    float: right;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .col-md-3 {
+        margin-bottom: 1rem;
+    }
+    
+    #diffContainer {
+        max-height: 60vh;
+    }
+}
+
+/* スクロールバーのスタイリング */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
