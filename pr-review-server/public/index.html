@@ -61,6 +61,42 @@
 
             <!-- メイン：diff表示 -->
             <div class="col-md-9">
+                <!-- 差分要約セクション -->
+                <div class="card mb-3" id="diffSummaryCard" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>📊 Diff Summary</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleSummaryDetail()">
+                            <span id="summaryToggleText">Show Details</span>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="diffSummaryContent">
+                            <!-- 要約がここに表示される -->
+                        </div>
+                        <div id="diffSummaryDetail" style="display: none;" class="mt-3">
+                            <!-- 詳細情報がここに表示される -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 差分全体のレビューセクション -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5>💭 Overall Diff Review</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="overallReviewsList" class="mb-3">
+                            <!-- 既存のレビューがここに表示される -->
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-primary" onclick="openOverallReviewModal()">
+                                <i class="bi bi-plus-circle"></i> Add Overall Review Comment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- コード差分表示 -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5>📊 Code Changes</h5>
@@ -119,6 +155,60 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="addComment()">Add Comment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 差分全体レビューモーダル -->
+    <div class="modal fade" id="overallReviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">💭 Add Overall Diff Review</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="overallReviewForm">
+                        <div class="mb-3">
+                            <label class="form-label">Review Title</label>
+                            <input type="text" class="form-control" id="overallReviewTitle" placeholder="e.g., Performance improvements needed">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Review Comment</label>
+                            <textarea class="form-control" id="overallReviewText" rows="6" placeholder="Enter your overall review of the changes..."></textarea>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="generateReviewSummary()">
+                                    <span class="spinner-border spinner-border-sm d-none" id="summarySpinner"></span>
+                                    🤖 Auto-generate from diff summary
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Review Type</label>
+                            <select class="form-select" id="overallReviewType">
+                                <option value="general">📝 General Review</option>
+                                <option value="architecture">🏗️ Architecture Review</option>
+                                <option value="performance">⚡ Performance Review</option>
+                                <option value="security">🔒 Security Review</option>
+                                <option value="testing">🧪 Testing Review</option>
+                                <option value="documentation">📚 Documentation Review</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" id="overallReviewPriority">
+                                <option value="low">🟢 Low</option>
+                                <option value="medium" selected>🟡 Medium</option>
+                                <option value="high">🔴 High</option>
+                                <option value="critical">🚨 Critical</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addOverallReview()">Add Review</button>
                 </div>
             </div>
         </div>

@@ -141,56 +141,267 @@ body {
 /* 行番号とコメントボタン */
 .line-comment-btn {
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, transform 0.2s;
     cursor: pointer;
     color: var(--github-blue);
     margin-left: 8px;
+    font-size: 14px;
+    display: inline-block;
 }
 
-.d2h-code-line:hover .line-comment-btn {
-    opacity: 1;
+.line-comment-btn:hover {
+    transform: scale(1.2);
+    opacity: 1 !important;
+}
+
+tr:hover .line-comment-btn,
+.d2h-code-line:hover .line-comment-btn,
+.code-line-selectable:hover .line-comment-btn {
+    opacity: 0.7;
 }
 
 /* 行範囲選択の視覚的インジケーター */
 .line-selected {
     background-color: #fff3cd !important;
-    border-left: 3px solid #ffc107 !important;
+    position: relative;
+    animation: pulse 0.3s ease-in-out;
+    box-shadow: inset 0 0 0 2px #ffc107;
+    transition: all 0.2s ease;
+}
+
+.line-selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #ffc107;
+    animation: slideInLeft 0.2s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 選択された行のテキストを強調 */
+.line-selected td {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    font-weight: 500;
 }
 
 .line-range-start {
-    border-top: 2px solid #007bff !important;
+    border-top: 3px solid #007bff !important;
+    background-color: rgba(0, 123, 255, 0.08) !important;
+}
+
+.line-range-start::after {
+    content: '▶ Start';
+    position: absolute;
+    right: 10px;
+    top: 2px;
+    font-size: 11px;
+    color: #007bff;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ffffff 0%, #e7f3ff 100%);
+    padding: 2px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+    animation: fadeIn 0.3s ease-out;
 }
 
 .line-range-end {
-    border-bottom: 2px solid #007bff !important;
+    border-bottom: 3px solid #007bff !important;
+    background-color: rgba(0, 123, 255, 0.08) !important;
+}
+
+.line-range-end::after {
+    content: '◀ End';
+    position: absolute;
+    right: 10px;
+    bottom: 2px;
+    font-size: 11px;
+    color: #007bff;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ffffff 0%, #e7f3ff 100%);
+    padding: 2px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+    animation: fadeIn 0.3s ease-out;
 }
 
 .line-range-middle {
     background-color: #e3f2fd !important;
-    border-left: 3px solid #2196f3 !important;
+    border-left: 4px solid #2196f3 !important;
+    position: relative;
+}
+
+.line-range-middle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, rgba(33, 150, 243, 0.1) 0%, transparent 50px);
+    pointer-events: none;
+}
+
+/* 単一行選択時の特別なスタイル */
+.line-selected:only-child,
+.line-range-start.line-range-end {
+    background-color: #ffeaa7 !important;
+    box-shadow: 
+        inset 0 0 0 2px #fdcb6e,
+        0 2px 8px rgba(253, 203, 110, 0.3);
+}
+
+.line-range-start.line-range-end::after {
+    content: '◆ Selected';
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    color: #2d3436;
+}
+
+/* 選択アニメーション */
+@keyframes pulse {
+    0% { 
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1.005);
+    }
+    100% { 
+        opacity: 0.6;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ホバー時の選択プレビュー */
+body.range-selection-active .code-line-selectable:hover::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 123, 255, 0.05);
+    border: 1px dashed #007bff;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 選択中の行番号の強調 */
+.line-selected .d2h-code-linenumber,
+.line-selected .d2h-code-side-linenumber {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+    font-weight: bold;
 }
 
 /* 選択状態の視覚的フィードバック */
 .selection-indicator {
-    position: absolute;
-    right: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 範囲選択モード中のスタイル */
+body.range-selection-active {
+    cursor: crosshair;
+}
+
+body.range-selection-active .code-line-selectable {
+    cursor: pointer;
+    position: relative;
+}
+
+body.range-selection-active .code-line-selectable:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    transition: background-color 0.1s ease;
+}
+
+/* 選択モード中のビジュアルフィードバック */
+body.range-selection-active::after {
+    content: 'Range Selection Mode Active';
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     background: #007bff;
     color: white;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 11px;
-    z-index: 100;
-    pointer-events: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    z-index: 1000;
+    animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-5px);
+    }
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 /* 行のクリック可能な領域を拡張 */
-.d2h-code-line {
+.d2h-code-line,
+.code-line-selectable {
     position: relative;
     cursor: pointer;
+    transition: background-color 0.1s ease;
 }
 
-.d2h-code-line:hover {
+.d2h-code-line:hover,
+.code-line-selectable:hover {
     background-color: #f8f9fa;
+}
+
+/* コード行のインタラクティブ性を強化 */
+tr.d2h-code-side-line,
+tr[class*="d2h-"] {
+    transition: background-color 0.1s ease;
+}
+
+tr.d2h-code-side-line:hover td,
+tr[class*="d2h-"]:hover td {
+    background-color: rgba(0, 0, 0, 0.02);
 }
 
 /* コメント表示 */
@@ -322,6 +533,17 @@ body {
     }
 }
 
+/* ホバープレビュースタイル */
+.line-hover-preview {
+    background-color: rgba(0, 123, 255, 0.08) !important;
+    border-left: 2px dashed #007bff !important;
+    transition: all 0.1s ease;
+}
+
+.line-hover-preview td {
+    opacity: 0.8;
+}
+
 /* スクロールバーのスタイリング */
 ::-webkit-scrollbar {
     width: 8px;
@@ -339,4 +561,185 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* コメントボタンのツールチップ */
+.line-comment-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    margin-bottom: 4px;
+}
+
+.line-comment-btn[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* \u5168\u4f53\u30ec\u30d3\u30e5\u30fc\u30bb\u30af\u30b7\u30e7\u30f3 */
+.overall-review-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.overall-review-item .card {
+    border: 1px solid var(--github-border);
+    transition: box-shadow 0.2s ease;
+}
+
+.overall-review-item .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.review-type-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.review-priority-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* \u5168\u4f53\u30ec\u30d3\u30e5\u30fc\u30e2\u30fc\u30c0\u30eb */
+#overallReviewModal .modal-dialog {
+    max-width: 700px;
+}
+
+#overallReviewModal .form-label {
+    font-weight: 600;
+    color: var(--github-text);
+}
+
+#overallReviewModal textarea {
+    min-height: 150px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+/* \u30d0\u30c3\u30b8\u30b9\u30bf\u30a4\u30eb\u306e\u62e1\u5f35 */
+.badge {
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+
+.badge.bg-dark {
+    background-color: #2d3436 !important;
+}
+
+/* \u30d0\u30c3\u30b8\u30a2\u30cb\u30e1\u30fc\u30b7\u30e7\u30f3 */
+.review-type-badge,
+.review-priority-badge {
+    display: inline-block;
+    animation: badgeBounce 0.3s ease-out;
+}
+
+@keyframes badgeBounce {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* \u5168\u4f53\u30ec\u30d3\u30e5\u30fc\u30ea\u30b9\u30c8\u304c\u7a7a\u306e\u5834\u5408 */
+#overallReviewsList .text-muted {
+    padding: 2rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}
+
+/* \u5dee\u5206\u8981\u7d04\u30bb\u30af\u30b7\u30e7\u30f3 */
+#diffSummaryCard {
+    border: 2px solid var(--github-border);
+    transition: all 0.3s ease;
+}
+
+#diffSummaryCard:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#diffSummaryContent h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+#diffSummaryContent .badge {
+    font-size: 1rem;
+    padding: 0.5em 1em;
+}
+
+#diffSummaryDetail .card {
+    transition: transform 0.2s ease;
+}
+
+#diffSummaryDetail .card:hover {
+    transform: translateY(-2px);
+}
+
+/* \u8981\u7d04\u7d71\u8a08\u306e\u6570\u5024 */
+.text-success {
+    color: var(--github-green) !important;
+}
+
+.text-danger {
+    color: var(--github-red) !important;
+}
+
+/* \u30d1\u30bf\u30fc\u30f3\u691c\u51fa\u30ab\u30fc\u30c9 */
+.card.border-success {
+    border-color: var(--github-green) !important;
+}
+
+.card.border-danger {
+    border-color: var(--github-red) !important;
+}
+
+.card.border-info {
+    border-color: var(--github-blue) !important;
+}
+
+.card.border-warning {
+    border-color: var(--github-orange) !important;
+}
+
+.card.border-secondary {
+    border-color: var(--github-border) !important;
+}
+
+/* \u81ea\u52d5\u751f\u6210\u30dc\u30bf\u30f3 */
+.btn-outline-primary:hover .spinner-border {
+    border-color: #fff !important;
+    border-right-color: transparent !important;
+}
+
+/* \u30b9\u30d4\u30ca\u30fc */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
 }

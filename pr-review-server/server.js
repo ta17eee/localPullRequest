@@ -20,6 +20,7 @@ app.use(express.static('public'));
 const DATA_DIR = './data';
 const COMMENTS_FILE = path.join(DATA_DIR, 'comments.json');
 const REVIEW_FILE = path.join(DATA_DIR, 'review.json');
+const OVERALL_REVIEWS_FILE = path.join(DATA_DIR, 'overall-reviews.json');
 
 // データディレクトリを確保
 async function ensureDataDir() {
@@ -68,32 +69,86 @@ app.get('/api/diff', async (req, res) => {
         const diffWorking = await git.diff();
         const combinedDiff = diffCached + '\n' + diffWorking;
 
-        // ファイル統計を取得
-        const fileStats = [];
-        for (const file of status.files) {
-            try {
-                const stat = await git.diffSummary([file.path]);
-                fileStats.push({
-                    path: file.path,
-                    status: file.working_dir || file.index,
-                    additions: stat.insertions || 0,
-                    deletions: stat.deletions || 0
-                });
-            } catch (error) {
-                // 新規ファイルの場合は統計が取れないことがある
-                fileStats.push({
-                    path: file.path,
-                    status: file.working_dir || file.index,
-                    additions: 0,
-                    deletions: 0
+        // 全体の差分統計を取得
+        let totalAdditions = 0;
+        let totalDeletions = 0;
+        let fileStats = [];
+        
+        try {
+            // ステージング済みとワーキングディレクトリの統計を両方取得
+            const statCached = await git.diffSummary(['--cached']);
+            const statWorking = await git.diffSummary();
+            
+            // ファイル別統計を作成
+            const fileStatsMap = new Map();
+            
+            // ステージング済みの統計をマップに追加
+            if (statCached && statCached.files) {
+                statCached.files.forEach(fileStat => {
+                    fileStatsMap.set(fileStat.file, {
+                        path: fileStat.file,
+                        status: 'staged',
+                        additions: fileStat.insertions || 0,
+                        deletions: fileStat.deletions || 0
+                    });
                 });
             }
+            
+            // ワーキングディレクトリの統計をマージ
+            if (statWorking && statWorking.files) {
+                statWorking.files.forEach(fileStat => {
+                    const existing = fileStatsMap.get(fileStat.file);
+                    if (existing) {
+                        existing.additions += fileStat.insertions || 0;
+                        existing.deletions += fileStat.deletions || 0;
+                        existing.status = 'modified';
+                    } else {
+                        fileStatsMap.set(fileStat.file, {
+                            path: fileStat.file,
+                            status: 'unstaged',
+                            additions: fileStat.insertions || 0,
+                            deletions: fileStat.deletions || 0
+                        });
+                    }
+                });
+            }
+            
+            // status.filesから確実にすべてのファイルを含める
+            status.files.forEach(file => {
+                if (!fileStatsMap.has(file.path)) {
+                    fileStatsMap.set(file.path, {
+                        path: file.path,
+                        status: file.working_dir || file.index,
+                        additions: 0,
+                        deletions: 0
+                    });
+                }
+            });
+            
+            // 配列に変換し、合計を計算
+            fileStats = Array.from(fileStatsMap.values());
+            totalAdditions = fileStats.reduce((sum, file) => sum + file.additions, 0);
+            totalDeletions = fileStats.reduce((sum, file) => sum + file.deletions, 0);
+            
+        } catch (error) {
+            console.error('Diff summary error:', error);
+            // フォールバック：基本情報のみ
+            fileStats = status.files.map(file => ({
+                path: file.path,
+                status: file.working_dir || file.index,
+                additions: 0,
+                deletions: 0
+            }));
         }
+
+        // 差分の要約を生成
+        const summary = generateDiffSummary(fileStats, totalAdditions, totalDeletions, combinedDiff);
 
         res.json({
             success: true,
             diff: combinedDiff,
-            fileStats: fileStats
+            fileStats: fileStats,
+            summary: summary
         });
 
     } catch (error) {
@@ -238,6 +293,85 @@ app.post('/api/review', async (req, res) => {
     }
 });
 
+// 全体レビューを取得
+app.get('/api/overall-reviews', async (req, res) => {
+    try {
+        await ensureDataDir();
+        const reviews = await readJsonFile(OVERALL_REVIEWS_FILE, []);
+        res.json({
+            success: true,
+            reviews: reviews
+        });
+    } catch (error) {
+        console.error('Get overall reviews error:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            reviews: []
+        });
+    }
+});
+
+// 全体レビューを追加
+app.post('/api/overall-reviews', async (req, res) => {
+    try {
+        await ensureDataDir();
+        const review = req.body;
+        
+        // バリデーション
+        if (!review.title || !review.text) {
+            return res.json({
+                success: false,
+                error: 'Title and text are required'
+            });
+        }
+        
+        const reviews = await readJsonFile(OVERALL_REVIEWS_FILE, []);
+        reviews.push(review);
+        await writeJsonFile(OVERALL_REVIEWS_FILE, reviews);
+        
+        res.json({
+            success: true
+        });
+    } catch (error) {
+        console.error('Add overall review error:', error);
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// 全体レビューを削除
+app.delete('/api/overall-reviews/:id', async (req, res) => {
+    try {
+        await ensureDataDir();
+        const reviewId = req.params.id;
+        
+        const reviews = await readJsonFile(OVERALL_REVIEWS_FILE, []);
+        const filteredReviews = reviews.filter(r => r.id !== reviewId);
+        
+        if (reviews.length === filteredReviews.length) {
+            return res.json({
+                success: false,
+                error: 'Review not found'
+            });
+        }
+        
+        await writeJsonFile(OVERALL_REVIEWS_FILE, filteredReviews);
+        
+        res.json({
+            success: true
+        });
+    } catch (error) {
+        console.error('Delete overall review error:', error);
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // レビューをMarkdown形式でエクスポート
 app.get('/api/export', async (req, res) => {
     try {
@@ -245,13 +379,14 @@ app.get('/api/export', async (req, res) => {
         
         const review = await readJsonFile(REVIEW_FILE, {});
         const comments = await readJsonFile(COMMENTS_FILE, []);
+        const overallReviews = await readJsonFile(OVERALL_REVIEWS_FILE, []);
         
         // Git情報を取得
         const status = await git.status();
         const log = await git.log({ maxCount: 5 });
         
         // Markdownを生成
-        const markdown = generateMarkdownReport(review, comments, status, log);
+        const markdown = generateMarkdownReport(review, comments, overallReviews, status, log);
         
         res.json({
             success: true,
@@ -331,7 +466,7 @@ app.get('/api/claude-instructions', async (req, res) => {
 });
 
 // Markdownレポートを生成
-function generateMarkdownReport(review, comments, gitStatus, gitLog) {
+function generateMarkdownReport(review, comments, overallReviews, gitStatus, gitLog) {
     const date = new Date().toLocaleDateString();
     const statusEmoji = {
         pending: '🟡',
@@ -346,6 +481,40 @@ function generateMarkdownReport(review, comments, gitStatus, gitLog) {
     // サマリー
     if (review.summary) {
         markdown += `## Summary\n\n${review.summary}\n\n`;
+    }
+    
+    // 全体レビュー
+    if (overallReviews.length > 0) {
+        markdown += `## Overall Diff Reviews\n\n`;
+        
+        // 優先度でソート
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        const sortedReviews = [...overallReviews].sort((a, b) => 
+            priorityOrder[a.priority] - priorityOrder[b.priority]
+        );
+        
+        sortedReviews.forEach(review => {
+            const typeEmoji = {
+                general: '📝',
+                architecture: '🏗️',
+                performance: '⚡',
+                security: '🔒',
+                testing: '🧪',
+                documentation: '📚'
+            };
+            const priorityEmoji = {
+                low: '🟢',
+                medium: '🟡',
+                high: '🔴',
+                critical: '🚨'
+            };
+            
+            markdown += `### ${typeEmoji[review.type] || '📝'} ${review.title}\n`;
+            markdown += `**Type:** ${review.type} | **Priority:** ${priorityEmoji[review.priority]} ${review.priority}\n`;
+            markdown += `**Date:** ${new Date(review.timestamp).toLocaleString()}\n\n`;
+            markdown += `${review.text}\n\n`;
+            markdown += `---\n\n`;
+        });
     }
     
     // 変更されたファイル
@@ -466,6 +635,159 @@ After making changes, please run any available linting and testing commands to v
 `;
 
     return instructions;
+}
+
+// 差分の要約を生成
+function generateDiffSummary(fileStats, totalAdditions, totalDeletions, diffContent) {
+    const summary = {
+        totalFiles: fileStats.length,
+        totalAdditions: totalAdditions,
+        totalDeletions: totalDeletions,
+        fileTypes: {},
+        changeTypes: {
+            added: 0,
+            modified: 0,
+            deleted: 0,
+            renamed: 0
+        },
+        mainChanges: [],
+        estimatedImpact: 'low' // low, medium, high
+    };
+
+    // ファイルタイプと変更タイプを分析
+    fileStats.forEach(file => {
+        // ファイル拡張子を取得
+        const ext = path.extname(file.path) || 'no-extension';
+        summary.fileTypes[ext] = (summary.fileTypes[ext] || 0) + 1;
+
+        // 変更タイプをカウント
+        switch (file.status) {
+            case 'A':
+            case '??':
+                summary.changeTypes.added++;
+                break;
+            case 'M':
+                summary.changeTypes.modified++;
+                break;
+            case 'D':
+                summary.changeTypes.deleted++;
+                break;
+            case 'R':
+                summary.changeTypes.renamed++;
+                break;
+        }
+    });
+
+    // 主要な変更を抽出
+    const significantFiles = fileStats
+        .filter(file => {
+            const isSignificant = 
+                file.path.includes('package.json') ||
+                file.path.includes('config') ||
+                file.path.includes('.env') ||
+                file.path.includes('schema') ||
+                file.path.includes('migration') ||
+                (file.additions + file.deletions) > 50;
+            return isSignificant;
+        })
+        .map(file => ({
+            path: file.path,
+            changes: file.additions + file.deletions,
+            type: getFileType(file.path)
+        }));
+
+    summary.mainChanges = significantFiles;
+
+    // 影響度を推定
+    if (totalAdditions + totalDeletions > 500 || summary.totalFiles > 20) {
+        summary.estimatedImpact = 'high';
+    } else if (totalAdditions + totalDeletions > 100 || summary.totalFiles > 10) {
+        summary.estimatedImpact = 'medium';
+    }
+
+    // コードパターンの分析（簡易版）
+    const patterns = analyzeDiffPatterns(diffContent);
+    summary.patterns = patterns;
+
+    return summary;
+}
+
+// ファイルタイプを判定
+function getFileType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const typeMap = {
+        '.js': 'JavaScript',
+        '.ts': 'TypeScript',
+        '.jsx': 'React',
+        '.tsx': 'React TypeScript',
+        '.json': 'Configuration',
+        '.md': 'Documentation',
+        '.css': 'Styling',
+        '.scss': 'Styling',
+        '.html': 'Markup',
+        '.py': 'Python',
+        '.java': 'Java',
+        '.go': 'Go',
+        '.rs': 'Rust',
+        '.sql': 'Database',
+        '.yml': 'Configuration',
+        '.yaml': 'Configuration',
+        '.env': 'Environment',
+        '.gitignore': 'Git',
+        '.dockerignore': 'Docker'
+    };
+    return typeMap[ext] || 'Other';
+}
+
+// Diffパターンを分析
+function analyzeDiffPatterns(diffContent) {
+    const patterns = {
+        newFeatures: [],
+        refactoring: [],
+        bugFixes: [],
+        tests: [],
+        documentation: []
+    };
+
+    // 簡易的なパターンマッチング
+    const lines = diffContent.split('\n');
+    
+    lines.forEach(line => {
+        if (line.startsWith('+') && !line.startsWith('+++')) {
+            const content = line.substring(1).trim().toLowerCase();
+            
+            // 新機能の検出
+            if (content.includes('function') || content.includes('class') || 
+                content.includes('export') || content.includes('async')) {
+                patterns.newFeatures.push('New functions or classes added');
+            }
+            
+            // テストの検出
+            if (content.includes('test') || content.includes('spec') || 
+                content.includes('expect') || content.includes('assert')) {
+                patterns.tests.push('Test cases added or modified');
+            }
+            
+            // ドキュメントの検出
+            if (content.includes('readme') || content.includes('doc') || 
+                content.includes('comment')) {
+                patterns.documentation.push('Documentation updates');
+            }
+            
+            // バグ修正の検出
+            if (content.includes('fix') || content.includes('bug') || 
+                content.includes('error') || content.includes('issue')) {
+                patterns.bugFixes.push('Potential bug fixes');
+            }
+        }
+    });
+
+    // 重複を削除
+    Object.keys(patterns).forEach(key => {
+        patterns[key] = [...new Set(patterns[key])].slice(0, 3); // 最大3つまで
+    });
+
+    return patterns;
 }
 
 // ルートパス
